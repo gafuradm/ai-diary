@@ -297,6 +297,28 @@ app.get("/api/sabotage", async (req, res) => {
 
 const PORT = process.env.PORT || 4000;
 
+app.post("/api/comments-batch", async (req, res) => {
+  try {
+    const { entries } = req.body;
+
+    const results = [];
+
+    for (const e of entries) {
+      try {
+        const comment = await generateDailyComment(e.content);
+        results.push({ id: e.id, comment });
+      } catch {
+        results.push({ id: e.id, comment: "AI unavailable" });
+      }
+    }
+
+    res.json({ results });
+  } catch (err) {
+    console.error("BATCH COMMENT ERROR:", err);
+    res.status(500).json({ error: "Batch failed" });
+  }
+});
+
 app.listen(PORT, "0.0.0.0", () => {
   console.log("✅ Server running on port " + PORT);
 });
