@@ -42,13 +42,13 @@ ${text}
       }
     );
 
-    // Получаем ответ
+    // Get response
     let content = response.data.choices[0].message.content;
 
-    // Убираем возможные ```json или ``` вокруг
+    // Remove possible ```json or ``` around
     content = content.replace(/```json/g, "").replace(/```/g, "").trim();
 
-    // Парсим JSON
+    // Parse JSON
     return JSON.parse(content);
   } catch (err) {
     console.error("DeepSeek error:", err.response?.data || err.message);
@@ -68,7 +68,7 @@ export async function generateDailyComment(text) {
       messages: [
         {
           role: "system",
-          content: "Ты — умный дневниковый психолог. Дай тёплый, подробный комментарий к записи пользователя. Без морализаторства."
+          content: "You are an intelligent diary psychologist. Provide a warm, detailed comment on the user's entry. Without moralizing."
         },
         {
           role: "user",
@@ -161,10 +161,10 @@ The JSON MUST be exactly in this format:
 
     let raw = response.data.choices[0].message.content.trim();
 
-    // Удаляем возможные ```json блоки
+    // Remove possible ```json blocks
     raw = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
 
-    // Находим первую и последнюю фигурную скобку
+    // Find first and last curly brace
     const start = raw.indexOf("{");
     const end = raw.lastIndexOf("}") + 1;
     const clean = raw.slice(start, end);
@@ -187,22 +187,22 @@ export async function detectSabotage(text) {
           {
             role: "system",
             content: `
-Ты — AI-Детектор Саботажа.
-Оцени текст пользователя по трём шкалам:
+You are an AI Sabotage Detector.
+Evaluate the user's text on three scales:
 
-1. "procrastination": число 0-10 — насколько запись показывает избегание, откладывание, прокрастинацию.
-2. "self_deception": число 0-10 — насколько пользователь врёт себе, рационализирует, придумывает оправдания.
-3. "loops": число 0-10 — насколько запись показывает повторяющийся жизненный тупик или замкнутый круг.
+1. "procrastination": number 0-10 - how much the entry shows avoidance, postponement, procrastination.
+2. "self_deception": number 0-10 - how much the user lies to themselves, rationalizes, makes excuses.
+3. "loops": number 0-10 - how much the entry shows a recurring life dead end or vicious circle.
 
-Верни СТРОГО JSON:
+Return STRICT JSON:
 {
   "procrastination": number,
   "self_deception": number,
   "loops": number,
-  "summary": "короткий вывод"
+  "summary": "brief conclusion"
 }
 
-Только JSON. Без лишнего текста.
+Only JSON. No extra text.
 `
           },
           {

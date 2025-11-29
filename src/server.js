@@ -13,7 +13,7 @@ app.use(cors());
 app.use(express.json());
 
 // ==========================
-// DeepSeek: прогноз на будущее
+// DeepSeek: future forecast
 // ==========================
 async function generateForecast(text) {
   try {
@@ -57,12 +57,12 @@ No extra text, no markdown.
     return JSON.parse(content);
   } catch (err) {
     console.error("DeepSeek forecast error:", err.response?.data || err.message);
-    throw new Error("Не удалось сгенерировать прогноз от AI");
+    throw new Error("Failed to generate AI forecast");
   }
 }
 
 // ==========================
-// Создание записи дневника
+// Create diary entry
 // ==========================
 app.post("/api/entries", async (req, res) => {
   try {
@@ -98,7 +98,7 @@ app.post("/api/entries", async (req, res) => {
 });
 
 // ==========================
-// Генерация комментария AI
+// Generate AI comment
 // ==========================
 app.post("/api/comment", async (req, res) => {
   try {
@@ -107,43 +107,43 @@ app.post("/api/comment", async (req, res) => {
     res.json({ comment: aiComment });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ comment: "Комментарий AI недоступен" });
+    res.status(500).json({ comment: "AI comment unavailable" });
   }
 });
 
 // ==========================
-// Прогноз по всей истории дневника
+// Forecast based on entire diary history
 // ==========================
 app.post("/api/future-full", async (req, res) => {
   try {
     const rows = db.prepare(`SELECT * FROM entries ORDER BY created_at ASC`).all();
 
-    if (!rows.length) return res.json({ forecast: "Нет записей для анализа истории" });
+    if (!rows.length) return res.json({ forecast: "No entries available for historical analysis" });
 
     const fullText = rows.map(e => `${e.created_at}: ${e.content}`).join("\n");
 
-    // Вызов DeepSeek для прогноза всей истории
+    // Call DeepSeek for full history forecast
     const aiForecast = await generateDailyComment(`
-Предскажи пользователю будущее на основе всей истории его дневника:
+Predict the user's future based on their entire diary history:
 ${fullText}
 
-Верни текстовый прогноз через год, включая:
-- Общее состояние
-- Эмоциональный профиль
-- Совет
-- Краткие комментарии по каждому дню
-Только текст, без JSON и разметки
+Return a textual forecast for one year from now, including:
+- Overall condition
+- Emotional profile
+- Advice
+- Brief comments for each day
+Text only, no JSON or markup
 `);
 
     res.json({ forecast: aiForecast });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ forecast: "Не удалось сгенерировать прогноз от AI" });
+    res.status(500).json({ forecast: "Failed to generate AI forecast" });
   }
 });
 
 // ==========================
-// Получение всех записей
+// Get all entries
 // ==========================
 app.get("/api/entries", (req, res) => {
   const rows = db.prepare(`SELECT * FROM entries ORDER BY created_at DESC`).all();
@@ -151,40 +151,40 @@ app.get("/api/entries", (req, res) => {
 });
 
 // ==========================
-// Прогноз по тексту пользователя
+// Forecast based on user text
 app.post("/api/forecast", async (req, res) => {
   try {
     const { text } = req.body;
 
     if (!text || !text.trim()) {
-      return res.status(400).json({ error: "Нет текста для прогноза" });
+      return res.status(400).json({ error: "No text provided for forecast" });
     }
 
-    // Вызов DeepSeek для генерации прогноза
+    // Call DeepSeek to generate forecast
     const forecastText = await generateDailyComment(`
-Предскажи пользователю, что произойдет через год, если он продолжит жить как описано ниже.
-Текст пользователя: ${text}
+Predict what will happen to the user in one year if they continue living as described below.
+User text: ${text}
 
-Верни строго текстовый прогноз, без JSON, без разметки:
-- Общее состояние
-- Эмоциональный профиль
-- Совет
+Return strictly textual forecast, no JSON, no markup:
+- Overall condition
+- Emotional profile
+- Advice
 `);
 
-    res.json({ forecast: forecastText }); // возвращаем как строку
+    res.json({ forecast: forecastText }); // return as string
   } catch (err) {
     console.error("FORECAST ERROR:", err);
-    res.status(500).json({ error: "Не удалось сделать прогноз" });
+    res.status(500).json({ error: "Failed to generate forecast" });
   }
 });
 
 // ==========================
-// Детальный прогноз по дням
+// Detailed daily forecast
 // ==========================
 app.post("/api/future-detailed", async (req, res) => {
   try {
     const rows = db.prepare(`SELECT * FROM entries ORDER BY created_at ASC`).all();
-    if (!rows.length) return res.json({ forecast: "Нет записей для анализа истории" });
+    if (!rows.length) return res.json({ forecast: "No entries available for historical analysis" });
 
     const detailedResults = [];
 
@@ -205,7 +205,7 @@ app.post("/api/future-detailed", async (req, res) => {
       });
     }
 
-    // Средние эмоции
+    // Average emotions
     const emotionSums = { joy: 0, sadness: 0, anger: 0, fear: 0 };
     detailedResults.forEach(r => {
       for (const k in emotionSums) emotionSums[k] += r.emotions[k] || 0;
@@ -214,31 +214,31 @@ app.post("/api/future-detailed", async (req, res) => {
     const avgEmotions = {};
     for (const k in emotionSums) avgEmotions[k] = +(emotionSums[k]/n).toFixed(2);
 
-    // Общая тональность
+    // Overall sentiment
     const sentimentCounts = { positive: 0, negative: 0, neutral: 0 };
     detailedResults.forEach(r => sentimentCounts[r.sentiment]++);
     const overallSentiment = sentimentCounts.positive >= sentimentCounts.negative ? "positive" : "negative";
 
-    // Сбор итогового прогноза
+    // Compile final forecast
     const forecast = {
       overallSentiment,
       avgEmotions,
-      advice: "Смотрите рекомендации AI в комментариях к каждому дню.",
+      advice: "See AI recommendations in comments for each day.",
       detailedResults
     };
 
     res.json(forecast);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Не удалось сгенерировать детальный прогноз" });
+    res.status(500).json({ error: "Failed to generate detailed forecast" });
   }
 });
 
 // ==========================
-// AI-СУДЬЯ
+// AI-JUDGE
 // ==========================
 // ==========================
-// AI-Судья: оценка всех записей
+// AI-Judge: evaluate all entries
 // ==========================
 app.get("/api/judge-all", async (req, res) => {
   try {
@@ -247,7 +247,7 @@ app.get("/api/judge-all", async (req, res) => {
 
     const results = await Promise.all(
       rows.map(async (entry) => {
-        const j = await judgeAction(entry.content);   // <-- ВАЖНО!
+        const j = await judgeAction(entry.content);   // <-- IMPORTANT!
         return {
           id: entry.id,
           date: entry.created_at,
@@ -291,7 +291,7 @@ app.get("/api/sabotage", async (req, res) => {
     res.json({ results });    
   } catch (err) {
     console.error("SABOTAGE ERROR:", err);
-    res.status(500).json({ error: "Detectors sabotажа не работает" });
+    res.status(500).json({ error: "Sabotage detector is not working" });
   }
 });
 
@@ -315,7 +315,7 @@ app.post("/api/comments-batch", async (req, res) => {
     res.json({ results });
   } catch (err) {
     console.error("BATCH COMMENT ERROR:", err);
-    res.status(500).json({ error: "Batch failed" });
+    res.status(500).json({ error: "Batch processing failed" });
   }
 });
 
